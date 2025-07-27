@@ -1,0 +1,5 @@
+pdfplumber
+pdf2image
+Pillow
+g4f
+rank_bm25
