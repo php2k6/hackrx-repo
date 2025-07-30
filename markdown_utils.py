@@ -1,7 +1,7 @@
 from g4f.client import Client
-
+import g4f.Provider
 def identify_structure_and_convert_to_md(text):
-    client = Client() 
+    client = Client(provider=g4f.Provider.Blackbox) 
     prompt = f"""
 Analyze the following text and identify its structure (headings, paragraphs, lists, tables, etc.). 
 Important: No text should be ommited if you don't understand its structure just return it as it is.

@@ -1,4 +1,5 @@
 from g4f.client import Client
+import g4f.Provider
 
 def answer_from_chunks(query, chunks, model="gpt-4o"):
     if not chunks:
@@ -6,7 +7,7 @@ def answer_from_chunks(query, chunks, model="gpt-4o"):
     context = "\n\n".join([
         f"Section: {section}\n{content}" for section, content in chunks
     ])
-    client = Client()
+    client = Client(provider=g4f.Provider.Blackbox)
     prompt = f"""
 You are an expert at reading insurance documents. Use the provided sections to answer the user's question. If the answer is not present, say so.
 
