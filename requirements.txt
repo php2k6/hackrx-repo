@@ -1,0 +1,24 @@
+pdfplumber
+pdf2image
+Pillow
+g4f
+rank_bm25
+semantic-text-splitter
+pymupdf4llm
+pymupdf
+fastapi
+uvicorn
+pydantic
+pydantic-settings
+pinecone-client
+sentence-transformers
+python-multipart
+python-dotenv
+transformers
+torch
+
+# Optional LLM providers (install as needed)
+# openai>=1.0.0  # For OpenAI provider
+# anthropic  # For Anthropic provider
+# transformers  # For HuggingFace provider
+# torch  # For local models
