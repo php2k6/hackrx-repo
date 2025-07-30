@@ -1,33 +1,38 @@
 import re
+from semantic_text_splitter import TextSplitter
 
-# Minimal Document class for chunking
-class Document:
-    def __init__(self, page_content, metadata):
-        self.page_content = page_content
-        self.metadata = metadata
+def detect_headings_and_chunk(md_text, chunk_size=500, chunk_overlap=50):
+    lines = md_text.split("\n")
+    sections = []
+    current_section = {"heading": "Introduction", "content": ""}
 
-def is_heading(line):
-    return bool(re.match(r"^#+ ", line.strip()))
+    heading_pattern = re.compile(r"^(?:[#]+|_.*_|[*]{2}.*[*]{2}|[A-Z\s]{4,})$")  # #, _, **, ALL CAPS
 
-def split_markdown_to_chunks(md):
-    lines = md.strip().splitlines()
-    semantic_chunks = []
-    current_chunk_lines = []
-    current_metadata = {}
     for line in lines:
-        if is_heading(line):
-            if current_chunk_lines:
-                chunk_text = '\n'.join(current_chunk_lines)
-                semantic_chunks.append(Document(page_content=chunk_text, metadata=current_metadata.copy()))
-                current_chunk_lines = []
-            header_level = line.count('#', 0, line.find(' '))
-            header_text = line.strip('#').strip()
-            for lvl in list(current_metadata.keys()):
-                if int(lvl.split()[-1]) >= header_level:
-                    del current_metadata[lvl]
-            current_metadata[f'Header {header_level}'] = header_text
-        current_chunk_lines.append(line)
-    if current_chunk_lines:
-        chunk_text = '\n'.join(current_chunk_lines)
-        semantic_chunks.append(Document(page_content=chunk_text, metadata=current_metadata.copy()))
-    return semantic_chunks
+        clean_line = line.strip()
+
+        # Detect heading by pattern or short bold/italic lines
+        if clean_line and heading_pattern.match(clean_line) and len(clean_line.split()) < 12:
+            # Save old section if it has content
+            if current_section["content"].strip():
+                sections.append(current_section)
+            # Start new section
+            current_section = {"heading": clean_line.strip("_*# "), "content": ""}
+        else:
+            current_section["content"] += line + "\n"
+
+    # Add last section
+    if current_section["content"].strip():
+        sections.append(current_section)
+
+    # Now split each section semantically
+    splitter = TextSplitter(capacity=chunk_size, overlap=chunk_overlap)
+    chunks = []
+    for sec in sections:
+        for sc in splitter.chunks(sec["content"]):
+            chunks.append({
+                "section": sec["heading"],
+                "text": sc
+            })
+
+    return chunks
