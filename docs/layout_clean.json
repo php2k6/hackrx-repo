@@ -1,6 +1,27 @@
-[
-  [
-    [
-      "bboxes",
-      [
-        
+{
+  "layout": {
+    "header": {
+      "title": "HackRx FastAPI App",
+      "logo": "path/to/logo.png"
+    },
+    "sidebar": {
+      "items": [
+        {
+          "title": "Home",
+          "link": "/"
+        },
+        {
+          "title": "API Documentation",
+          "link": "/docs/api"
+        },
+        {
+          "title": "User Guide",
+          "link": "/docs/user_guide"
+        }
+      ]
+    },
+    "footer": {
+      "text": "© 2023 HackRx. All rights reserved."
+    }
+  }
+}
