@@ -41,10 +41,10 @@ class DocumentProcessor:
                 
                 try:
                     # 5. Extract text and convert to markdown
-                    markdown_text = self.pdf_extractor.extract_to_markdown(pdf_path)
-                    
+                    structured_data = self.pdf_extractor.extract_structured_data(pdf_path)
+
                     # 6. Create chunks
-                    chunks = self.chunking_service.create_chunks(markdown_text, document_id)
+                    chunks = self.chunking_service.detect_headings_and_chunk_structured(structured_data, document_id)
                     
                     # 7. Store in Pinecone
                     await self.vector_service.store_chunks(chunks, document_id)
