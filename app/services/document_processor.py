@@ -8,6 +8,7 @@ from app.services.chunking_service import ChunkingService
 from app.services.pinecone_service import PineconeService
 from app.services.llm_service import LLMService
 from app.services.document_validator import DocumentValidator
+from app.models.schemas import ProcessedChunk
 from app.core.config import settings
 import logging
 
@@ -40,14 +41,23 @@ class DocumentProcessor:
                 pdf_path = await self._download_document(document_url)
                 
                 try:
-                    # 5. Extract text and convert to markdown
+                    # 5. Extract text and convert to structured_data
                     structured_data = self.pdf_extractor.extract_structured_data(pdf_path)
 
                     # 6. Create chunks
-                    chunks = self.chunking_service.detect_headings_and_chunk_structured(structured_data, document_id)
+                    processed_chunks = self.chunking_service.detect_headings_and_chunk_structured(structured_data, document_id)
+                    logger.info(f"Generated {len(processed_chunks)} ProcessedChunk objects")
+                    
+                    # Filter chunks by minimum size
+                    filtered_chunks = []
+                    for chunk in processed_chunks:
+                        if len(chunk.text.strip()) >= settings.MIN_CHUNK_SIZE:
+                            filtered_chunks.append(chunk)
+                    
+                    logger.info(f"Filtered to {len(filtered_chunks)} chunks meeting minimum size requirement")
                     
                     # 7. Store in Pinecone
-                    await self.vector_service.store_chunks(chunks, document_id)
+                    await self.vector_service.store_chunks(filtered_chunks, document_id)
                     
                     logger.info(f"Successfully processed document {document_id}")
                     

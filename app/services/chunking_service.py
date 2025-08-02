@@ -29,35 +29,21 @@ class ChunkingService:
                 return []
         
         # Use the same function for both text and structured data
-        raw_chunks = self.detect_headings_and_chunk_structured(data, document_id)
+        chunks = self.detect_headings_and_chunk_structured(data, document_id)
         
-        if not raw_chunks:
+        if not chunks:
             logger.warning("No chunks created from data")
             return []
         
-        processed_chunks = []
-        for i, chunk in enumerate(raw_chunks):
-            # Skip chunks that are too small
-            if len(chunk["text"].strip()) < self.min_chunk_size:
-                continue
-                
-            metadata = ChunkMetadata(
-                section=chunk["section"],
-                page=chunk.get("page", 1),
-                document_id=document_id,  # THIS IS WHERE document_id IS USED
-                chunk_index=i
-            )
-            
-            processed_chunks.append(ProcessedChunk(
-                text=chunk["text"],
-                metadata=metadata
-            ))
-        
-        logger.info(f"Created {len(processed_chunks)} chunks from {len(raw_chunks)} raw chunks for document: {document_id}")
-        return processed_chunks
+        logger.info(f"Successfully created {len(chunks)} ProcessedChunk objects")
+        return chunks
 
-    def detect_headings_and_chunk_structured(self, structured_pages: List[dict], document_id: str = "") -> List[dict]:
+    def detect_headings_and_chunk_structured(self, data: Union[str, List[dict]], document_id: str = "") -> List[ProcessedChunk]:
         """Detect headings using font size / bold style / section number, chunk section-wise."""
+        
+        
+        # Handle structured data
+        structured_pages = data
         logger.info(f"Starting structured chunking for {len(structured_pages)} pages (document: {document_id})")
         
         # Find body font size (most common across pages)
@@ -112,20 +98,36 @@ class ChunkingService:
 
         logger.info(f"Detected {headings_detected} headings, created {len(sections)} sections")
 
-        # Now chunk section-wise
+        # Now chunk section-wise and create ProcessedChunk objects
         splitter = TextSplitter(capacity=self.chunk_size, overlap=self.chunk_overlap)
-        chunks = []
+        processed_chunks = []
+        chunk_index = 0
+        
         for sec in sections:
             section_chunks = list(splitter.chunks(sec["content"]))
             logger.debug(f"Section '{sec['heading'][:30]}...' split into {len(section_chunks)} chunks")
-            for sc in section_chunks:
-                chunks.append({
-                    "section": sec["heading"],
-                    "text": sc,
-                    "page": sec["page"]  # Include page number in chunk
-                })
+            
+            for chunk_text in section_chunks:
+                # Skip chunks that are too small
+                if len(chunk_text.strip()) < self.min_chunk_size:
+                    continue
+                    
+                metadata = ChunkMetadata(
+                    section=sec["heading"],
+                    page=sec["page"],
+                    document_id=document_id,
+                    chunk_index=chunk_index
+                )
+                
+                processed_chunk = ProcessedChunk(
+                    text=chunk_text,
+                    metadata=metadata
+                )
+                
+                processed_chunks.append(processed_chunk)
+                chunk_index += 1
 
-        logger.info(f"Created {len(chunks)} total chunks from structured data (document: {document_id})")
-        return chunks
+        logger.info(f"Created {len(processed_chunks)} ProcessedChunk objects from structured data (document: {document_id})")
+        return processed_chunks
 
-    
+        
