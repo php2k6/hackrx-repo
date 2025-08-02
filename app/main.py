@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes import document
 from app.core.config import settings
 from app.services.llm_service import LLMService
+from app.services.auth_service import get_api_key_dependency
 import logging
 
 # Configure logging
@@ -10,6 +11,8 @@ logging.basicConfig(
     level=settings.LOG_LEVEL,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -35,6 +38,7 @@ async def root():
         "version": settings.API_VERSION,
         "llm_provider": settings.LLM_PROVIDER,
         "embedding_model": settings.EMBEDDING_MODEL,
+        "authentication": "enabled" if settings.API_KEY_ENABLED else "disabled",
         "status": "healthy"
     }
 
@@ -47,9 +51,13 @@ async def health_check():
     }
 
 @app.get("/llm")
-async def llm_query(query: str = Query(..., description="The query to send to the LLM")):
+async def llm_query(
+    query: str = Query(..., description="The query to send to the LLM"),
+    api_key: str = get_api_key_dependency()
+):
     """
     Direct LLM endpoint that takes a query and returns the LLM response.
+    Requires valid API key in Authorization header: Bearer <api_key>
     
     Args:
         query: The question or prompt to send to the LLM
@@ -58,6 +66,8 @@ async def llm_query(query: str = Query(..., description="The query to send to th
         dict: Contains the query, response, and metadata
     """
     try:
+        logger.info(f"Processing LLM query with API key: {api_key[:10] if api_key != 'disabled' else 'disabled'}...")
+        
         # Initialize LLM service
         llm_service = LLMService()
         
@@ -69,6 +79,7 @@ async def llm_query(query: str = Query(..., description="The query to send to th
             "response": response,
             "llm_provider": settings.LLM_PROVIDER,
             "model": settings.LLM_MODEL,
+            "authenticated": api_key != "disabled",
             "status": "success"
         }
         

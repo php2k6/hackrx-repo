@@ -45,6 +45,16 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
     API_VERSION: str = "1.0.0"
     
+    # API Authentication Settings
+    API_KEY_ENABLED: bool = True
+    API_KEYS: str = "hackrx-2024-prod-abc123,hackrx-2024-dev-xyz789,hackrx-2024-test-def456,78d7998b9fcc9f14c38515cd2883b846ea8912dcdf2155e1500038dd96844b1c"
+    API_KEY_HEADER: str = "Authorization"  # Header name for API key
+    
+    @property
+    def api_keys_list(self) -> List[str]:
+        """Convert comma-separated API keys to list"""
+        return [key.strip() for key in self.API_KEYS.split(",") if key.strip()]
+    
     @property
     def supported_formats_list(self) -> List[str]:
         """Convert comma-separated formats to list"""
