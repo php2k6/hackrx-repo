@@ -16,8 +16,9 @@ python-multipart
 python-dotenv
 transformers
 torch
-camelot
-# Optional LLM providers (install as needed)
+
+# Optional LLM prcamelot
+iders (install as needed)
 # openai>=1.0.0  # For OpenAI provider
 # anthropic  # For Anthropic provider
 # transformers  # For HuggingFace provider

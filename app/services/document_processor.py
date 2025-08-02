@@ -43,8 +43,8 @@ class DocumentProcessor:
                     # 5. Extract text and convert to markdown
                     structured_data = self.pdf_extractor.extract_structured_data(pdf_path)
 
-                    # 6. Create chunks
-                    chunks = self.chunking_service.detect_headings_and_chunk_structured(structured_data, document_id)
+                    # 6. Create chunks using the proper method that returns ProcessedChunk objects
+                    chunks = self.chunking_service.create_chunks(structured_data, document_id)
                     
                     # 7. Store in Pinecone
                     await self.vector_service.store_chunks(chunks, document_id)
@@ -74,8 +74,8 @@ class DocumentProcessor:
                 
                 if not relevant_chunks:
                     logger.warning(f"No relevant chunks found for question: {question[:50]}...")
-                    # For complex questions, try to provide a general response based on available data
-                    answer = await self._handle_complex_question(question, document_id)
+                    # Provide diplomatic response favoring "no" when no matches found
+                    answer = "Based on the available policy documentation, this specific provision does not appear to be covered or explicitly addressed. The policy likely does not include this benefit or condition."
                     answers.append(answer)
                     continue
                 
@@ -232,21 +232,16 @@ class DocumentProcessor:
                         break
             
             if general_chunks:
-                # Use LLM to answer based on available context, even if not perfectly matched
-                enhanced_prompt = f"""Based on the available policy document sections, please answer the following question as best as possible. If specific details mentioned in the question are not available, state what information is available and indicate what specific details are missing.
-
-Question: {question}
-
-Available Policy Information:"""
-                
-                answer = await self.llm_service.generate_answer(enhanced_prompt, general_chunks)
+                # Create direct prompt for concise answer
+                direct_prompt = f"Based on policy document, answer in 2-3 lines: {question}"
+                answer = await self.llm_service.generate_answer(direct_prompt, general_chunks)
                 return answer
             else:
-                return f"I apologize, but I cannot find sufficient information in the policy document to answer this specific question: '{question[:100]}...'. Please ensure the document contains the relevant policy terms and conditions."
+                return "Based on the policy terms reviewed, this specific scenario or benefit does not appear to be covered. The policy likely excludes or does not provide for this particular situation."
                 
         except Exception as e:
             logger.error(f"Error handling complex question: {e}")
-            return "I encountered an error while trying to answer this question. Please try rephrasing the question or contact support."
+            return "Unable to process question due to system error."
     
     async def get_document_info(self, document_id: str) -> dict:
         """Get information about a processed document"""

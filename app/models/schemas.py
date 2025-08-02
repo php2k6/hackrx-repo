@@ -24,6 +24,30 @@ class DocumentQuery(BaseModel):
 class DocumentResponse(BaseModel):
     answers: List[str]
 
+class WebhookQuery(BaseModel):
+    documents: HttpUrl
+    questions: List[str]
+    callback_url: Optional[HttpUrl] = None
+    
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "documents": "https://hackrx.blob.core.windows.net/assets/policy.pdf",
+                "questions": [
+                    "What is the grace period for premium payment?",
+                    "What is the waiting period for pre-existing diseases?"
+                ],
+                "callback_url": "https://your-app.com/webhook/callback"
+            }
+        }
+    }
+
+class WebhookResponse(BaseModel):
+    status: str
+    message: str
+    callback_url: Optional[str] = None
+    note: Optional[str] = None
+
 class SemanticChunk(BaseModel):
     section: str
     text: str

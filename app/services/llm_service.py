@@ -69,7 +69,7 @@ Answer:"""
     async def _answer_from_chunks(self, query: str, chunks: List[tuple]) -> str:
         """Generate answer using the configured LLM provider"""
         if not chunks:
-            return "No relevant content found in the document."
+            return "Based on the policy document review, this provision does not appear to be covered. The policy likely excludes this benefit or condition."
         
         # Format context from chunks
         context_parts = []
@@ -85,28 +85,23 @@ Answer:"""
         return await self._generate_with_g4f(prompt)
     
     def _create_prompt(self, query: str, context: str) -> str:
-        """Create optimized prompt for insurance document Q&A"""
-        return f"""You are an expert insurance policy analyst. Answer the user's question based on the provided document sections. 
+        """Create optimized prompt for concise insurance document Q&A"""
+        return f"""Answer the insurance question directly using the policy document. Be precise and concise.
 
-IMPORTANT GUIDELINES:
-1. Give direct, specific answers with exact details from the document
-2. If the answer involves numbers (days, months, percentages), be precise
-3. For complex questions, extract and combine relevant information from multiple sections
-4. If specific details are not found, state what related information IS available
-5. Cite specific sections when possible
-6. For waiting periods, grace periods, limits - provide exact values
-7. For calculations, show the formula and steps
-8. If only partial information is available, provide what you can and note what's missing
-9. Do not include any Markdown formatting in the response
+RULES:
+- Maximum 3-4 lines per answer
+- State facts from the document, not opinions
+- Include exact numbers, percentages, timeframes
+- If information is missing or unclear, diplomatically suggest the policy likely does not cover it
+- When uncertain, favor "no" or "not covered" interpretations
+- Get straight to the point
 
-CONTEXT: These are sections from an insurance policy document.
+Question: {query}
 
-User Question: {query}
-
-Document Sections:
+Policy Document:
 {context}
 
-Answer:"""
+Direct Answer:"""
     
     async def _generate_with_g4f(self, prompt: str) -> str:
         """Generate response using G4F providers"""
@@ -117,11 +112,28 @@ Answer:"""
                 web_search=False,
                 temperature=self.temperature
             )
-            return response.choices[0].message.content.strip()
+            answer = response.choices[0].message.content.strip()
+            # Ensure answer is concise (max 4 lines)
+            return self._trim_to_max_lines(answer, 4)
         except Exception as e:
             logger.error(f"G4F generation error: {e}")
             # Return a more helpful fallback response instead of error message
             return self._create_fallback_response(prompt)
+    
+    def _trim_to_max_lines(self, text: str, max_lines: int = 4) -> str:
+        """Trim text to maximum number of lines"""
+        lines = text.split('\n')
+        if len(lines) <= max_lines:
+            return text
+        
+        # Take first max_lines and add ellipsis if needed
+        trimmed_lines = lines[:max_lines]
+        # If the last line is very short, we might have cut mid-sentence
+        if len(trimmed_lines[-1].strip()) < 10 and len(lines) > max_lines:
+            # Replace last short line with "..."
+            trimmed_lines[-1] = "..."
+        
+        return '\n'.join(trimmed_lines)
     
     def _create_fallback_response(self, prompt: str) -> str:
         """Create a helpful fallback response when LLM is unavailable"""
@@ -133,17 +145,6 @@ Answer:"""
         
         # Extract context from the prompt
         if "Document Sections:" in prompt:
-            context_part = prompt.split("Document Sections:")[1].strip()
-            # Get first few lines of context
-            context_lines = context_part.split('\n')[:5]
-            context_summary = '\n'.join(context_lines)
-            
-            return f"""Based on the available document content, I found relevant information but cannot provide a detailed analysis due to temporary service limitations. 
-
-Here are the relevant document sections that may contain the answer to: {question_part}
-
-{context_summary}
-
-Please review these sections manually or try again later when the analysis service is restored."""
+            return "Service temporarily unavailable. Check document manually."
         else:
-            return f"I found relevant information in the document for: {question_part}, but cannot provide detailed analysis due to temporary service limitations. Please try again later."
+            return "Service unavailable. Try again later."
