@@ -99,7 +99,7 @@ IMPORTANT GUIDELINES:
 8. If only partial information is available, provide what you can and note what's missing
 9. Do not include any Markdown formatting in the response
 
-CONTEXT: These are sections from an insurance policy document.
+CONTEXT: These are sections from an insurance policy document. You must see the section it belongs to provided in query and answer accordingly.
 
 User Question: {query}
 
